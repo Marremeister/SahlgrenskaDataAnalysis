@@ -149,8 +149,8 @@ function createHourlyInequalityChart(hourlyStats) {
             labels: hourlyStats.map(stat => stat.hour_formatted),
             datasets: [
                 {
-                    label: 'Inequality (Std Dev)',
-                    data: hourlyStats.map(stat => stat.avg_std_dev),
+                    label: 'Relative Inequality Index',
+                    data: hourlyStats.map(stat => stat.avg_relative_inequality),
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                     tension: 0.1
@@ -165,7 +165,7 @@ function createHourlyInequalityChart(hourlyStats) {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Standard Deviation'
+                        text: 'Relative Inequality Index'
                     }
                 }
             },
@@ -175,8 +175,10 @@ function createHourlyInequalityChart(hourlyStats) {
                         label: function(context) {
                             const value = context.parsed.y;
                             const transporters = hourlyStats[context.dataIndex].avg_transporters;
+                            const stdDev = hourlyStats[context.dataIndex].avg_std_dev;
                             return [
-                                `Std Dev: ${value.toFixed(2)}`,
+                                `Relative Inequality: ${value.toFixed(2)}`,
+                                `Std Dev: ${stdDev.toFixed(2)}%`,
                                 `Avg Transporters: ${transporters.toFixed(1)}`
                             ];
                         }
@@ -276,7 +278,7 @@ function loadHighestInequalityPeriods() {
                     row.innerHTML = `
                         <td>${period.date_hour}</td>
                         <td>${period.num_transporters}</td>
-                        <td>${period.std_dev.toFixed(2)}</td>
+                        <td>${period.std_dev.toFixed(2)}% (${period.relative_inequality.toFixed(2)})</td>
                         <td>${period.gini.toFixed(4)}</td>
                         <td>
                             <button class="btn btn-sm btn-primary view-details"
@@ -324,7 +326,7 @@ function loadLowestInequalityPeriods() {
                     row.innerHTML = `
                         <td>${period.date_hour}</td>
                         <td>${period.num_transporters}</td>
-                        <td>${period.std_dev.toFixed(2)}</td>
+                        <td>${period.std_dev.toFixed(2)}% (${period.relative_inequality.toFixed(2)})</td>
                         <td>${period.gini.toFixed(4)}</td>
                         <td>
                             <button class="btn btn-sm btn-primary view-details"
@@ -422,6 +424,13 @@ function showWorkloadDetails(periodData) {
     // Set modal title
     document.getElementById('workloadDetailsTitle').textContent =
         `Workload Distribution for ${periodData.date_hour} (${periodData.num_transporters} transporters)`;
+
+    // Add relative inequality info to the title
+    const relativeInequalityInfo = document.createElement('small');
+    relativeInequalityInfo.className = 'ms-2 text-muted';
+    relativeInequalityInfo.textContent =
+        `Relative Inequality: ${periodData.relative_inequality.toFixed(2)}, Std Dev: ${periodData.std_dev.toFixed(2)}%`;
+    document.getElementById('workloadDetailsTitle').appendChild(relativeInequalityInfo);
 
     // Get workload details
     const workloadDetails = periodData.workload_details;

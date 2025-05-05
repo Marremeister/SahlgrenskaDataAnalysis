@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 from app.models.data_model import DataModel
+from app.utils import safe_jsonify  # Add this import
 import os
 
 data = Blueprint('data', __name__)
@@ -12,7 +13,7 @@ def get_data_summary():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -21,12 +22,12 @@ def get_data_summary():
         model.load_data()
         summary = model.get_data_summary()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'summary': summary
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -39,7 +40,7 @@ def get_columns():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -48,12 +49,12 @@ def get_columns():
         model.load_data()
         columns = model.get_column_names()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'columns': columns
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -66,7 +67,7 @@ def get_unique_values(column):
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -76,20 +77,20 @@ def get_unique_values(column):
 
         # Check if column exists
         if column not in model.data.columns:
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': f'Column not found: {column}'
             }), 404
 
         values = model.get_unique_values(column)
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'column': column,
             'values': values
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -102,7 +103,7 @@ def filter_data():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -111,7 +112,7 @@ def filter_data():
         filters = request.json.get('filters', {})
 
         if not filters:
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No filters provided'
             }), 400
@@ -124,14 +125,14 @@ def filter_data():
         # Convert to a format suitable for JSON
         result = filtered_data.head(100).to_dict(orient='records')
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'data': result,
             'total_rows': len(filtered_data),
             'returned_rows': min(100, len(filtered_data))
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -144,7 +145,7 @@ def get_data_sample():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -158,14 +159,14 @@ def get_data_sample():
         # Get sample data
         sample_data = model.data.head(sample_size).to_dict(orient='records')
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'data': sample_data,
             'total_rows': len(model.data),
             'sample_size': min(sample_size, len(model.data))
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500

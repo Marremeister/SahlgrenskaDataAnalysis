@@ -183,6 +183,9 @@ class TransporterModel(DataModel):
             variance = sum(squared_diffs) / len(squared_diffs) if squared_diffs else 0
             std_dev = np.sqrt(variance)
 
+            # Calculate relative inequality (normalized standard deviation)
+            relative_inequality = std_dev / expected_workload_percent if expected_workload_percent > 0 else 0
+
             # Calculate Gini coefficient
             sorted_percentages = sorted(percentages)
             sum_of_differences = 0
@@ -202,6 +205,7 @@ class TransporterModel(DataModel):
                 'expected_workload_percent': expected_workload_percent,
                 'range_percent': range_percent,
                 'std_dev': std_dev,
+                'relative_inequality': relative_inequality,  # New field
                 'gini': gini,
                 'workload_details': workload_percentages,
                 'date_hour': f"{date} {hour}:00"
@@ -218,6 +222,8 @@ class TransporterModel(DataModel):
 
             if hour_data:
                 avg_std_dev = sum(stat['std_dev'] for stat in hour_data) / len(hour_data)
+                avg_relative_inequality = sum(stat['relative_inequality'] for stat in hour_data) / len(
+                    hour_data)  # New field
                 avg_gini = sum(stat['gini'] for stat in hour_data) / len(hour_data)
                 avg_transporters = sum(stat['num_transporters'] for stat in hour_data) / len(hour_data)
                 avg_range = sum(stat['range_percent'] for stat in hour_data) / len(hour_data)
@@ -225,6 +231,7 @@ class TransporterModel(DataModel):
                 hourly_stats.append({
                     'hour': hour,
                     'avg_std_dev': avg_std_dev,
+                    'avg_relative_inequality': avg_relative_inequality,  # New field
                     'avg_gini': avg_gini,
                     'avg_transporters': avg_transporters,
                     'avg_range': avg_range,
@@ -240,8 +247,8 @@ class TransporterModel(DataModel):
         if not self.workload_stats:
             self.analyze_workload()
 
-        # Sort by standard deviation (highest first)
-        sorted_stats = sorted(self.workload_stats, key=lambda x: x['std_dev'], reverse=True)
+        # Sort by relative inequality (highest first)
+        sorted_stats = sorted(self.workload_stats, key=lambda x: x['relative_inequality'], reverse=True)
         return sorted_stats[:limit]
 
     def get_lowest_inequality_periods(self, limit: int = 5) -> List[Dict[str, Any]]:
@@ -252,8 +259,8 @@ class TransporterModel(DataModel):
         # Filter periods with more than one transporter
         multi_transporter_periods = [stat for stat in self.workload_stats if stat['num_transporters'] > 1]
 
-        # Sort by standard deviation (lowest first)
-        sorted_stats = sorted(multi_transporter_periods, key=lambda x: x['std_dev'])
+        # Sort by relative inequality (lowest first)
+        sorted_stats = sorted(multi_transporter_periods, key=lambda x: x['relative_inequality'])
         return sorted_stats[:limit]
 
     def get_transporter_summary(self) -> List[Dict[str, Any]]:

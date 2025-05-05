@@ -4,6 +4,21 @@ from datetime import datetime
 import os
 from typing import Dict, List, Optional, Tuple, Any, Union
 
+def convert_to_serializable(obj):
+    """Convert NumPy types to native Python types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (list, tuple)):
+        return [convert_to_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    else:
+        return obj
+
 
 class DataModel:
     """Base class for handling data operations"""

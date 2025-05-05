@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from app.models.transporter_model import TransporterModel
 from app.models.analysis_model import AnalysisModel
+from app.utils import safe_jsonify  # Add this import
 import os
 
 analysis = Blueprint('analysis', __name__)
@@ -13,12 +14,12 @@ def get_available_analyses():
         model = AnalysisModel()
         analyses = model.get_available_analyses()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'analyses': analyses
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -31,7 +32,7 @@ def run_analysis(analysis_type):
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -45,18 +46,18 @@ def run_analysis(analysis_type):
         # Run the analysis
         result = model.run_analysis(analysis_type, **params)
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'analysis_type': analysis_type,
             'result': result
         })
     except ValueError as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 400
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -69,7 +70,7 @@ def run_all_analyses():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -80,12 +81,12 @@ def run_all_analyses():
         # Run all analyses
         results = model.run_all_analyses()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'results': results
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -98,7 +99,7 @@ def analyze_transporter_workload():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -109,13 +110,13 @@ def analyze_transporter_workload():
 
         workload_stats, hourly_stats = model.analyze_workload()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'workload_stats': workload_stats,
             'hourly_stats': hourly_stats
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -128,7 +129,7 @@ def get_highest_inequality_periods():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -143,12 +144,12 @@ def get_highest_inequality_periods():
 
         highest_inequality = model.get_highest_inequality_periods(limit)
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'highest_inequality': highest_inequality
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -161,7 +162,7 @@ def get_lowest_inequality_periods():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -176,12 +177,12 @@ def get_lowest_inequality_periods():
 
         lowest_inequality = model.get_lowest_inequality_periods(limit)
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'lowest_inequality': lowest_inequality
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
@@ -194,7 +195,7 @@ def get_transporter_summary():
         file_path = current_app.config.get('CURRENT_DATA_FILE')
 
         if not file_path or not os.path.exists(file_path):
-            return jsonify({
+            return safe_jsonify({
                 'success': False,
                 'error': 'No data file loaded'
             }), 404
@@ -205,12 +206,12 @@ def get_transporter_summary():
 
         transporter_summary = model.get_transporter_summary()
 
-        return jsonify({
+        return safe_jsonify({
             'success': True,
             'transporter_summary': transporter_summary
         })
     except Exception as e:
-        return jsonify({
+        return safe_jsonify({
             'success': False,
             'error': str(e)
         }), 500
