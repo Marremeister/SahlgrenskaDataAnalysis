@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-user-nurse me-2"></i>
+                    Transporter Workload Analysis
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" id="noDataAlert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>No data loaded.</strong> Please upload a transport data file to begin analysis.
+                </div>
+                
+                <div id="transporterContent" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Workload Inequality by Hour</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="hourlyInequalityChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Gini Coefficient by Hour</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="giniCoefficientChart"></canvas>
+                                    <div class="text-muted mt-2">
+                                        <small>Gini coefficient: 0 = perfect equality, 1 = maximum inequality</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Periods with Highest Inequality</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date & Hour</th>
+                                                    <th># Transporters</th>
+                                                    <th>Std Dev</th>
+                                                    <th>Gini</th>
+                                                    <th>Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="highestInequalityTableBody">
+                                                <!-- Data will be loaded here by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Periods with Lowest Inequality</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date & Hour</th>
+                                                    <th># Transporters</th>
+                                                    <th>Std Dev</th>
+                                                    <th>Gini</th>
+                                                    <th>Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="lowestInequalityTableBody">
+                                                <!-- Data will be loaded here by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">All Transporters Summary</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="transporterTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Transporter ID</th>
+                                                    <th>Total Transports</th>
+                                                    <th>Total Time (minutes)</th>
+                                                    <th>Avg. Duration (minutes)</th>
+                                                    <th>Busiest Hour</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="allTransportersTableBody">
+                                                <!-- Data will be loaded here by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workload Details Modal -->
+<div class="modal fade" id="workloadDetailsModal" tabindex="-1" aria-labelledby="workloadDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="workloadDetailsModalLabel">Workload Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 id="workloadDetailsTitle" class="mb-3"></h6>
+                <div id="workloadDetailsChart" style="height: 300px;"></div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Transporter</th>
+                                <th>Duration (min)</th>
+                                <th>Workload %</th>
+                                <th>Expected %</th>
+                                <th>Difference</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workloadDetailsTableBody">
+                            <!-- Details will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include transporters-specific JavaScript -->
+<script src="{{ url_for('static', filename='js/transporters.js') }}"></script>
+{% endblock %}
