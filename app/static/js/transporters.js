@@ -216,11 +216,17 @@ function createGiniCoefficientChart(hourlyStats) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true, // Change to true
+            aspectRatio: 2, // Add this line to control the aspect ratio
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 0.5,
+                    min: 0,
+                    max: 0.5,  // Ensure the max value is appropriate
+                    suggestedMax: 0.5, // Add this as a backup
+                    ticks: {
+                        stepSize: 0.1 // Control tick spacing
+                    },
                     title: {
                         display: true,
                         text: 'Gini Coefficient'

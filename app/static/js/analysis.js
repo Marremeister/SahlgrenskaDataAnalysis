@@ -426,7 +426,24 @@ function displayChart(result, container) {
     const canvas = document.createElement('canvas');
     canvas.id = 'resultChart';
     canvas.style.height = '400px';
+    canvas.style.maxHeight = '400px';
     container.appendChild(canvas);
+
+    // Common chart options to keep dimensions fixed
+    const fixedChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        animation: false,  // Disable animations to prevent resizing
+        layout: {
+            padding: {
+                top: 10,
+                right: 20,
+                bottom: 20,
+                left: 20
+            }
+        }
+    };
 
     // Determine chart type based on result structure
     if (currentAnalysisType === 'hourly_activity') {
@@ -443,8 +460,7 @@ function displayChart(result, container) {
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...fixedChartOptions,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -469,8 +485,7 @@ function displayChart(result, container) {
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...fixedChartOptions,
                 plugins: {
                     legend: {
                         position: 'right',
@@ -502,8 +517,7 @@ function displayChart(result, container) {
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...fixedChartOptions,
                 scales: {
                     y: {
                         beginAtZero: true
@@ -525,8 +539,7 @@ function displayChart(result, container) {
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...fixedChartOptions,
                 scales: {
                     y: {
                         beginAtZero: true
@@ -545,6 +558,7 @@ function displayChart(result, container) {
         const startCanvas = document.createElement('canvas');
         startCanvas.id = 'startLocationsChart';
         startCanvas.style.height = '300px';
+        startCanvas.style.maxHeight = '300px';
         startLocationsDiv.appendChild(startCanvas);
         container.appendChild(startLocationsDiv);
 
@@ -555,6 +569,7 @@ function displayChart(result, container) {
         const endCanvas = document.createElement('canvas');
         endCanvas.id = 'endLocationsChart';
         endCanvas.style.height = '300px';
+        endCanvas.style.maxHeight = '300px';
         endLocationsDiv.appendChild(endCanvas);
         container.appendChild(endLocationsDiv);
 
@@ -564,6 +579,7 @@ function displayChart(result, container) {
         const routesCanvas = document.createElement('canvas');
         routesCanvas.id = 'routesChart';
         routesCanvas.style.height = '300px';
+        routesCanvas.style.maxHeight = '300px';
         routesDiv.appendChild(routesCanvas);
         container.appendChild(routesDiv);
 
@@ -581,9 +597,8 @@ function displayChart(result, container) {
                 }]
             },
             options: {
+                ...fixedChartOptions,
                 indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
                 scales: {
                     x: {
                         beginAtZero: true
@@ -606,9 +621,8 @@ function displayChart(result, container) {
                 }]
             },
             options: {
+                ...fixedChartOptions,
                 indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
                 scales: {
                     x: {
                         beginAtZero: true
@@ -631,9 +645,8 @@ function displayChart(result, container) {
                 }]
             },
             options: {
+                ...fixedChartOptions,
                 indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
                 scales: {
                     x: {
                         beginAtZero: true
@@ -944,9 +957,13 @@ function displayAllResults(results) {
     resultContainer.innerHTML = html;
 
     // Now render each result
-    Object.keys(results).forEach(analysisType => {
+     Object.keys(results).forEach(analysisType => {
         const result = results[analysisType];
         const container = document.getElementById(`result-${analysisType}`);
+
+        // Add fixed dimensions to the container
+        container.style.height = '400px';
+        container.style.maxHeight = '400px';
 
         // Save current analysis type temporarily to use proper visualization
         const prevAnalysisType = currentAnalysisType;
@@ -958,6 +975,7 @@ function displayAllResults(results) {
         currentAnalysisType = prevAnalysisType;
     });
 }
+
 
 /**
  * Generate insights for the current analysis

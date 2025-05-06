@@ -194,3 +194,40 @@ pre {
         padding: 0;
     }
 }
+
+/* Fixed height for Gini coefficient chart */
+#giniCoefficientChart {
+    height: 300px !important;
+    max-height: 300px !important;
+}
+
+/* Better chart container styling */
+.chart-container,
+#resultChart,
+#startLocationsChart,
+#endLocationsChart,
+#routesChart,
+#giniCoefficientChart,
+#hourlyInequalityChart {
+    height: 300px !important;
+    max-height: 300px !important;
+    margin-bottom: 15px;
+    overflow: visible;
+}
+
+/* Make tab content expand to fit charts */
+.tab-pane {
+    min-height: 350px;
+    padding-bottom: 15px;
+}
+
+/* Add scrolling to chart containers if needed */
+.card-body {
+    overflow-y: auto;
+    max-height: 500px;
+}
+
+/* Ensure enough space between charts */
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
