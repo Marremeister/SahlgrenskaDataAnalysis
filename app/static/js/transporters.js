@@ -97,6 +97,7 @@ function loadTransporterData() {
 
     // Load highest and lowest inequality periods
     loadHighestInequalityPeriods();
+    loadMedianInequalityPeriods(); // ADD THIS LINE
     loadLowestInequalityPeriods();
 
     // Load all transporters summary
@@ -309,6 +310,54 @@ function loadHighestInequalityPeriods() {
         .catch(error => {
             console.error('Error loading highest inequality periods:', error);
             showErrorAlert('Failed to load highest inequality periods.');
+        });
+}
+
+/**
+ * Load median inequality periods
+ */
+function loadMedianInequalityPeriods() {
+    fetch('/api/transporters/median_inequality?limit=5')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const medianInequality = data.median_inequality;
+                const tableBody = document.getElementById('medianInequalityTableBody');
+
+                // Clear existing content
+                tableBody.innerHTML = '';
+
+                medianInequality.forEach(period => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${period.date_hour}</td>
+                        <td>${period.num_transporters}</td>
+                        <td>${period.std_dev.toFixed(2)}% (${period.relative_inequality.toFixed(2)})</td>
+                        <td>${period.gini.toFixed(4)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary view-details"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#workloadDetailsModal"
+                                    data-period='${JSON.stringify(period)}'>
+                                View Details
+                            </button>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                // Add event listeners to view details buttons
+                addWorkloadDetailsEventListeners();
+            } else if (data.error) {
+                console.error('Error from server:', data.error);
+                showErrorAlert('Failed to load median inequality periods: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading median inequality periods:', error);
+            showErrorAlert('Failed to load median inequality periods.');
         });
 }
 

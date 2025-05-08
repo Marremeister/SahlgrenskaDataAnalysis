@@ -10,10 +10,11 @@ class AnalysisModel(DataModel):
     This class provides a framework for adding new analysis types.
     """
 
-    def __init__(self, data_path: Optional[str] = None):
+    def __init__(self, data_path: Optional[str] = None, max_duration_minutes: float = 30.0):
         super().__init__(data_path)
         self.analysis_results = {}
         self.available_analyses = self._register_analyses()
+        self.max_duration_minutes = max_duration_minutes
 
     def _register_analyses(self) -> Dict[str, Callable]:
         """
@@ -109,14 +110,17 @@ class AnalysisModel(DataModel):
             complete_counts = [hourly_counts.get(hour, 0) for hour in all_hours]
             complete_percentages = [hourly_percentages.get(hour, 0) for hour in all_hours]
 
-            return {
+            result = {
                 'hours': all_hours,
                 'counts': complete_counts,
                 'percentages': complete_percentages,
-                'peak_hour': hourly_counts.idxmax(),
-                'slowest_hour': hourly_counts.idxmin() if hourly_counts.min() > 0 else None,
-                'total': total_count
+                'peak_hour': hourly_counts.idxmax() if not hourly_counts.empty else None,
+                'slowest_hour': hourly_counts.idxmin() if hourly_counts.min() > 0 and not hourly_counts.empty else None,
+                'total': total_count,
+                'max_duration_filter': self.max_duration_minutes
             }
+
+            return result
         except Exception as e:
             print(f"Error in hourly analysis: {e}")
             # Return empty result if analysis fails
@@ -127,7 +131,8 @@ class AnalysisModel(DataModel):
                 'peak_hour': None,
                 'slowest_hour': None,
                 'total': 0,
-                'error': str(e)
+                'error': str(e),
+                'max_duration_filter': self.max_duration_minutes
             }
 
     def analyze_transport_types(self, type_column: Optional[str] = None, **kwargs) -> Dict[str, Any]:
@@ -162,7 +167,8 @@ class AnalysisModel(DataModel):
                 'percentages': type_percentages.values.tolist(),
                 'most_common': type_counts.index[0] if not type_counts.empty else None,
                 'least_common': type_counts.index[-1] if not type_counts.empty else None,
-                'total': total_count
+                'total': total_count,
+                'max_duration_filter': self.max_duration_minutes
             }
         except Exception as e:
             print(f"Error in transport type analysis: {e}")
@@ -174,7 +180,8 @@ class AnalysisModel(DataModel):
                 'most_common': None,
                 'least_common': None,
                 'total': 0,
-                'error': str(e)
+                'error': str(e),
+                'max_duration_filter': self.max_duration_minutes
             }
 
     def analyze_location_frequency(self, location_column: Optional[str] = None, **kwargs) -> Dict[str, Any]:
@@ -228,7 +235,8 @@ class AnalysisModel(DataModel):
                     'names': route_counts.index.tolist(),
                     'counts': route_counts.values.tolist(),
                     'percentages': route_percentages.values.tolist()
-                }
+                },
+                'max_duration_filter': self.max_duration_minutes
             }
         except Exception as e:
             print(f"Error in location frequency analysis: {e}")
@@ -237,7 +245,8 @@ class AnalysisModel(DataModel):
                 'start_locations': {'names': [], 'counts': [], 'percentages': []},
                 'end_locations': {'names': [], 'counts': [], 'percentages': []},
                 'routes': {'names': [], 'counts': [], 'percentages': []},
-                'error': str(e)
+                'error': str(e),
+                'max_duration_filter': self.max_duration_minutes
             }
 
     def analyze_transport_duration(self, **kwargs) -> Dict[str, Any]:
@@ -263,14 +272,10 @@ class AnalysisModel(DataModel):
         end_time_column = "Uppdrag Sluttid" if "Uppdrag Sluttid" in self.data.columns else end_time_columns[0]
 
         try:
-            # Create a helper function to calculate duration
-            from app.models.transporter_model import TransporterModel
-            helper = TransporterModel()
-
             # Create a new column for duration
             durations = []
             for _, row in self.data.iterrows():
-                duration = helper.calculate_duration_minutes(
+                duration = self._calculate_duration_minutes(
                     row[start_time_column],
                     row[end_time_column]
                 )
@@ -278,6 +283,10 @@ class AnalysisModel(DataModel):
 
             durations = np.array(durations)
             durations = durations[durations > 0]  # Filter out zero/negative durations
+
+            # Note: Now that we've implemented filtering in DataModel, all durations should be <= max_duration_minutes
+            # But we can still enforce it here as a safety check
+            durations = durations[durations <= self.max_duration_minutes]
 
             if len(durations) == 0:
                 return {
@@ -288,13 +297,15 @@ class AnalysisModel(DataModel):
                     'std': 0,
                     'count': 0,
                     'histogram': {
-                        'bins': list(range(0, 60, 5)),
-                        'values': [0] * 12
-                    }
+                        'bins': list(range(0, int(self.max_duration_minutes) + 5, 5)),
+                        'values': [0] * ((int(self.max_duration_minutes) + 5) // 5)
+                    },
+                    'max_duration_filter': self.max_duration_minutes
                 }
 
-            # Calculate histogram data
-            hist, bin_edges = np.histogram(durations, bins=range(0, 60, 5))
+            # Calculate histogram data - use a bin range that includes our max duration
+            bin_range = range(0, int(self.max_duration_minutes) + 5, 5)
+            hist, bin_edges = np.histogram(durations, bins=bin_range)
 
             return {
                 'min': np.min(durations),
@@ -306,7 +317,8 @@ class AnalysisModel(DataModel):
                 'histogram': {
                     'bins': bin_edges[:-1].tolist(),
                     'values': hist.tolist()
-                }
+                },
+                'max_duration_filter': self.max_duration_minutes
             }
         except Exception as e:
             print(f"Error in transport duration analysis: {e}")
@@ -319,10 +331,11 @@ class AnalysisModel(DataModel):
                 'std': 0,
                 'count': 0,
                 'histogram': {
-                    'bins': list(range(0, 60, 5)),
-                    'values': [0] * 12
+                    'bins': list(range(0, int(self.max_duration_minutes) + 5, 5)),
+                    'values': [0] * ((int(self.max_duration_minutes) + 5) // 5)
                 },
-                'error': str(e)
+                'error': str(e),
+                'max_duration_filter': self.max_duration_minutes
             }
 
     def analyze_priority_distribution(self, priority_column: Optional[str] = None, **kwargs) -> Dict[str, Any]:
@@ -355,10 +368,8 @@ class AnalysisModel(DataModel):
                                 'starttid' in col.lower() or 'start' in col.lower() and 'tid' in col.lower()]
                 if date_columns:
                     date_column = date_columns[0]
-                    from app.models.transporter_model import TransporterModel
-                    helper = TransporterModel()
                     self.data['hour'] = self.data[date_column].apply(
-                        lambda x: helper.parse_datetime(x).hour if helper.parse_datetime(x) else None
+                        lambda x: self._parse_datetime(x).hour if self._parse_datetime(x) else None
                     )
 
             hourly_priority = {}
@@ -381,7 +392,8 @@ class AnalysisModel(DataModel):
                 'counts': priority_counts.values.tolist(),
                 'percentages': priority_percentages.values.tolist(),
                 'total': total_count,
-                'hourly_distribution': hourly_priority
+                'hourly_distribution': hourly_priority,
+                'max_duration_filter': self.max_duration_minutes
             }
         except Exception as e:
             print(f"Error in priority distribution analysis: {e}")
@@ -392,5 +404,6 @@ class AnalysisModel(DataModel):
                 'percentages': [],
                 'total': 0,
                 'hourly_distribution': {},
-                'error': str(e)
+                'error': str(e),
+                'max_duration_filter': self.max_duration_minutes
             }

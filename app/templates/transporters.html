@@ -45,10 +45,10 @@
                     </div>
                     
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="card-title mb-0">Periods with Highest Inequality</h5>
+                                    <h5 class="card-title mb-0">Highest Inequality</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
@@ -71,10 +71,36 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="card-title mb-0">Periods with Lowest Inequality</h5>
+                                    <h5 class="card-title mb-0">Median Inequality (Typical)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date & Hour</th>
+                                                    <th># Transporters</th>
+                                                    <th>Std Dev</th>
+                                                    <th>Gini</th>
+                                                    <th>Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="medianInequalityTableBody">
+                                                <!-- Data will be loaded here by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Lowest Inequality</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">

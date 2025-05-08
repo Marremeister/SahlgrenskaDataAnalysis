@@ -8,53 +8,91 @@ from app.models.data_model import DataModel
 class TransporterModel(DataModel):
     """Model for transporter data analysis"""
 
-    def __init__(self, data_path: Optional[str] = None):
+    def __init__(self, data_path: Optional[str] = None, max_duration_minutes: float = 30.0):
         super().__init__(data_path)
         self.transporters = None
         self.workload_stats = None
         self.hourly_stats = None
+        self.max_duration_minutes = max_duration_minutes
 
-    def parse_datetime(self, datetime_str: str) -> Optional[datetime]:
-        """Parse datetime strings in various formats"""
-        if not datetime_str or pd.isna(datetime_str):
-            return None
+    def get_highest_inequality_periods(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get periods with highest inequality"""
+        if not self.workload_stats:
+            self.analyze_workload()
 
-        # Try multiple date formats
-        formats = [
-            '%d-%m-%Y %H:%M:%S',  # 31-12-2023 22:36:16
-            '%Y-%m-%d %H:%M:%S',  # 2023-12-31 22:36:16
-            '%m/%d/%Y %H:%M:%S',  # 12/31/2023 22:36:16
-            '%d/%m/%Y %H:%M:%S'  # 31/12/2023 22:36:16
-        ]
+        # Sort by relative inequality (highest first)
+        sorted_stats = sorted(self.workload_stats, key=lambda x: x['relative_inequality'], reverse=True)
+        return sorted_stats[:limit]
 
-        for fmt in formats:
-            try:
-                return datetime.strptime(datetime_str, fmt)
-            except ValueError:
-                continue
+    def get_lowest_inequality_periods(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get periods with lowest inequality"""
+        if not self.workload_stats:
+            self.analyze_workload()
 
-        # If all formats failed, log the error and return None
-        print(f"Could not parse datetime: {datetime_str}")
-        return None
+        # Filter periods with more than one transporter
+        multi_transporter_periods = [stat for stat in self.workload_stats if stat['num_transporters'] > 1]
 
-    def calculate_duration_minutes(self, start_time_str: str, end_time_str: str) -> float:
-        """Calculate duration in minutes between two datetime strings"""
-        start_time = self.parse_datetime(start_time_str)
-        end_time = self.parse_datetime(end_time_str)
+        # Sort by relative inequality (lowest first)
+        sorted_stats = sorted(multi_transporter_periods, key=lambda x: x['relative_inequality'])
+        return sorted_stats[:limit]
 
-        if not start_time or not end_time:
-            return 0.0
+    def get_median_inequality_periods(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get periods with median inequality (most typical distribution)"""
+        if not self.workload_stats:
+            self.analyze_workload()
 
-        # Calculate the duration in minutes
-        duration = (end_time - start_time).total_seconds() / 60.0
+        # Filter periods with more than one transporter
+        multi_transporter_periods = [stat for stat in self.workload_stats if stat['num_transporters'] > 1]
 
-        # Check for negative durations (which would indicate data errors)
-        if duration < 0:
-            print(f"Warning: Negative duration calculated: {duration} minutes")
-            print(f"Start time: {start_time}, End time: {end_time}")
-            return 0.0
+        if not multi_transporter_periods:
+            return []
 
-        return duration
+        # Sort by relative inequality
+        sorted_stats = sorted(multi_transporter_periods, key=lambda x: x['relative_inequality'])
+
+        # Find the median position(s)
+        median_idx = len(sorted_stats) // 2
+
+        # For even number of periods, take a few around the middle
+        if len(sorted_stats) % 2 == 0 and len(sorted_stats) > 2:
+            start_idx = median_idx - limit // 2
+            end_idx = median_idx + limit // 2 + (1 if limit % 2 else 0)
+        else:
+            # For odd number of periods, take a few around the middle
+            half_limit = limit // 2
+            start_idx = max(0, median_idx - half_limit)
+            end_idx = min(len(sorted_stats), median_idx + half_limit + 1)
+
+        # Ensure valid indices
+        start_idx = max(0, start_idx)
+        end_idx = min(len(sorted_stats), end_idx)
+
+        # Get the median periods
+        median_periods = sorted_stats[start_idx:end_idx]
+
+        # If we couldn't get enough periods, just return what we have
+        if len(median_periods) < limit and len(sorted_stats) >= limit:
+            # Try to get more periods from around the median
+            extra_needed = limit - len(median_periods)
+            if start_idx > 0:
+                # Get more from before the start
+                extra_before = sorted_stats[max(0, start_idx - extra_needed):start_idx]
+                median_periods = extra_before + median_periods
+                extra_needed -= len(extra_before)
+
+            if extra_needed > 0 and end_idx < len(sorted_stats):
+                # Get more from after the end
+                extra_after = sorted_stats[end_idx:min(len(sorted_stats), end_idx + extra_needed)]
+                median_periods = median_periods + extra_after
+
+        # Limit to requested number
+        return median_periods[:limit]
+
+    def load_data(self, file_path: Optional[str] = None) -> pd.DataFrame:
+        """Load data from a CSV file with duration filtering"""
+        # Call parent's load_data method which now includes filtering
+        super().load_data(file_path)
+        return self.data
 
     def preprocess_data(self) -> pd.DataFrame:
         """Preprocess the transport data for analysis"""
@@ -114,14 +152,19 @@ class TransporterModel(DataModel):
             start_time_str = row[self.start_time_column]
             end_time_str = row[self.end_time_column]
 
-            start_time = self.parse_datetime(start_time_str)
-            end_time = self.parse_datetime(end_time_str)
+            start_time = self._parse_datetime(start_time_str)  # Changed from parse_datetime to _parse_datetime
+            end_time = self._parse_datetime(end_time_str)  # Changed from parse_datetime to _parse_datetime
 
             if not start_time or not end_time:
                 continue
 
             # Calculate duration in minutes
-            duration_minutes = self.calculate_duration_minutes(start_time_str, end_time_str)
+            duration_minutes = self._calculate_duration_minutes(start_time_str,
+                                                                end_time_str)  # Using the parent's method
+
+            # Skip if duration exceeds max_duration_minutes (although this should already be filtered)
+            if duration_minutes > self.max_duration_minutes:
+                continue
 
             # Format date to YYYY-MM-DD
             date = start_time.strftime('%Y-%m-%d')
@@ -278,7 +321,8 @@ class TransporterModel(DataModel):
             # Calculate total transport time
             total_time = 0
             for _, row in transporter_data.iterrows():
-                duration = self.calculate_duration_minutes(
+                duration = self._calculate_duration_minutes(
+                    # Changed from calculate_duration_minutes to _calculate_duration_minutes
                     row[self.start_time_column],
                     row[self.end_time_column]
                 )
@@ -290,7 +334,7 @@ class TransporterModel(DataModel):
             # Find busiest hour
             transporter_by_hour = transporter_data.copy()
             transporter_by_hour['hour'] = transporter_by_hour[self.start_time_column].apply(
-                lambda x: self.parse_datetime(x).hour if self.parse_datetime(x) else None
+                lambda x: self._parse_datetime(x).hour if self._parse_datetime(x) else None  # Changed method name
             )
             hour_counts = transporter_by_hour['hour'].value_counts()
             busiest_hour = hour_counts.idxmax() if not hour_counts.empty else None
@@ -300,7 +344,8 @@ class TransporterModel(DataModel):
                 'total_transports': len(transporter_data),
                 'total_minutes': total_time,
                 'avg_duration': avg_duration,
-                'busiest_hour': busiest_hour
+                'busiest_hour': busiest_hour,
+                'max_duration': self.max_duration_minutes  # Include the max duration in summary
             })
 
         # Sort by total transports

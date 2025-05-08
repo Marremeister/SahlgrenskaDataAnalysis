@@ -215,3 +215,35 @@ def get_transporter_summary():
             'success': False,
             'error': str(e)
         }), 500
+
+@analysis.route('/api/transporters/median_inequality')
+def get_median_inequality_periods():
+    """Get periods with median inequality (most typical distribution)"""
+    try:
+        file_path = current_app.config.get('CURRENT_DATA_FILE')
+
+        if not file_path or not os.path.exists(file_path):
+            return safe_jsonify({
+                'success': False,
+                'error': 'No data file loaded'
+            }), 404
+
+        # Get limit from query parameters
+        limit = request.args.get('limit', 5, type=int)
+
+        model = TransporterModel(file_path)
+        model.load_data()
+        model.preprocess_data()
+        model.analyze_workload()
+
+        median_inequality = model.get_median_inequality_periods(limit)
+
+        return safe_jsonify({
+            'success': True,
+            'median_inequality': median_inequality
+        })
+    except Exception as e:
+        return safe_jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
